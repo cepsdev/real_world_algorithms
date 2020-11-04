@@ -1,5 +1,7 @@
 /*
 *
+* ch6sec1.cpp - implements topological sort
+*
 * Implementation of algorithms and data structures as described in section 1 of chapter 6 of 
 * the book 'Real-World Algorithms - A Beginner's Guide' by PANOS LOURIDAS.
 *
@@ -28,85 +30,10 @@
 */
 
 #include <iostream>
-#include <vector>
+#include "graph.hpp"
 using namespace std;
+using namespace real_world_algorithms;
 
-struct Graph {
-	/*
-	* Nodes are integers.
-	* Graph structure is represented by adjacency lists which are stored in a single array.
-	* For each node u in V there is exactly one block of consecutive integers of the form: 
-	* Index(u),deg(u),v_1,...,v_k (k = deg(v)), where v_i = Index(v) for some v with (u,v) in E.
-	* Examples:
-	* A valid representation of the graph G = ( V = {0,1}, E = {(0,1)}) is 	
-	* [0,1,1,1,0];
-	* A valid representation of the graph G = ( V = {0,1}, E = {(0,1),(1,0)}) is
-	* [0,1,1,1,1,0];
-	* A valid representation of the graph G = ( V = {0,1,2}, E = {(0,1),(1,0)}) is
-	* [0,1,1,1,1,0,2,0];
-	*/
-	using node_t = int;
-	vector<node_t> adjacency_lists;
-	node_t node_ctr = {};
-	/*
-	* Creates a new vertex, pushes an empty adjacency list at the end of adjacency_lists.
-	* Returns index of vertex.
-	*/
-	node_t push() {
-		adjacency_lists.push_back(node_ctr);
-		adjacency_lists.push_back({});
-		return node_ctr++;
-	}
-	/*
-	* Inserts an edge (u,v). 
-	*/
-	void add_edge(int u, int v) {
-		if (node_ctr <= u || node_ctr <= v) return;
-		for (size_t i = 0; i < adjacency_lists.size();) {
-			auto node = adjacency_lists[i];
-			if (node != u) {
-				i += adjacency_lists[i + 1] + 2;
-				continue;
-			}
-			++adjacency_lists[i+1];
-			adjacency_lists.emplace(adjacency_lists.begin() + i + 2, v);
-			return;
-		}		
-	}
-
-	struct adj_list {
-		struct iterator {
-			adj_list& parent;
-			int ofs;
-			bool operator == (iterator rhs) const { return parent.start == rhs.parent.start && ofs == rhs.ofs && &parent.adjacency_lists == &rhs.parent.adjacency_lists; }
-			bool operator != (iterator rhs) const { return ! this->operator== (rhs); }
-			iterator operator ++ () { ++ofs;  return *this; }
-			node_t operator * () { return parent.adjacency_lists[parent.start + 2 + ofs] ;  }
-		};
-		bool valid;
-		size_t start;
-		vector<node_t>& adjacency_lists;
-		iterator begin() { return {*this,0}; }
-		iterator end() { return {*this,adjacency_lists[start + 1]}; }
-	};
-
-	adj_list AdjacencyList(node_t node) {
-		if (node >= node_ctr) return adj_list{ false, {}, adjacency_lists };
-		for (size_t i = 0; i < adjacency_lists.size();) {
-			if (node == adjacency_lists[i]) return adj_list{ true, i, adjacency_lists };
-			i += adjacency_lists[i + 1] + 2;
-		}
-		return adj_list{ false, {}, adjacency_lists };
-	}
-	
-	/*
-	* Computes a topological sort.
-	* Precondition: graph is cycle free.
-	*/
-	vector<node_t> TopologicalSort();
-private:
-	void DFSTopologicalSort(Graph::node_t node, vector<bool>& visited, vector<node_t>& sorted);
-};
 
 void print(ostream& os, Graph const& g) {
 	for (size_t i = 0; i < g.adjacency_lists.size();)
